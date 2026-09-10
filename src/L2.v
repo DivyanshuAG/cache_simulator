@@ -21,28 +21,31 @@
 
 
 module L2(
-    input clk, reset, enable, input [25:0] paddr,
+    input clk, reset, enable, w, input [25:0] paddr,
     output reg [15:0] totalL2Hit, totalL2Miss
     );
     reg [3:0] fifo [0:63];
     reg [14:0] tag_array [0:63][0:15];
     reg valid [0:63][0:15];
+    reg dirty [0:63][0:15];
 
     wire [14:0] tag = paddr[25:11];
     wire [5:0] index = paddr[10:5];
     wire [4:0] offset = paddr[4:0];
 
     reg hit;
-    reg [3:0] target;
+    reg [3:0] hit_way, target;
 
     integer a;
     always @(*) begin
         hit = 0;
         target = fifo[index];
+        hit_way = 0;
 
         for (a=15; a>=0; a=a-1) begin
             if (valid[index][a] && tag_array[index][a] == tag) begin
                 hit = 1;
+                hit_way = a;
             end
             if (!valid[index][a]) target = a;
         end
@@ -55,6 +58,7 @@ module L2(
                 for (j=0; j<16; j=j+1) begin
                     valid[i][j] <= 0;
                     tag_array[i][j] <= 0;
+                    dirty[i][j] <= 0;
                 end
             end
             totalL2Hit <= 0;
@@ -62,10 +66,12 @@ module L2(
         end else if (enable) begin
             if (hit) begin
                 totalL2Hit <= totalL2Hit + 1;
+                if (w) dirty[index][hit_way] <= 1;
             end else begin
                 totalL2Miss <= totalL2Miss + 1;
                 valid[index][target] <= 1;
                 tag_array[index][target] <= tag;
+                dirty[index][target] <= w;
                 fifo[index] <= fifo[index] + 1;
             end
         end
