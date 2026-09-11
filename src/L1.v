@@ -22,7 +22,7 @@
 
 module L1(
     input clk, reset, enable, input [25:0] paddr,
-    output reg [15:0] totalhit, totalL1Miss
+    output reg [15:0] totalL1Hit, totalL1Miss
     );
     reg hit;
     
@@ -63,11 +63,11 @@ module L1(
                 end
                 lru[i] <= 0;
             end
-            totalhit <= 0;
+            totalL1Hit <= 0;
             totalL1Miss <= 0;
         end else if (enable) begin
             if (hit) begin
-                totalhit <= totalhit + 1;
+                totalL1Hit <= totalL1Hit + 1;
                 case (hit_way)
                     2'b00: lru[index] <= (lru[index] | 16'h000f) & ~16'h1111;
                     2'b01: lru[index] <= (lru[index] | 16'h00f0) & ~16'h2222;
